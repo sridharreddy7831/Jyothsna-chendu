@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 
 
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -15,7 +16,33 @@ const ScrollToTop = () => {
   return null;
 };
 
-const Layout: React.FC<{ children: React.ReactNode; isPlaying: boolean; onToggleMusic: () => void }> = ({ children, isPlaying, onToggleMusic }) => {
+const NavigationHandler: React.FC<{
+  isPlaying: boolean;
+  setIsPlaying: (val: boolean) => void;
+  audioRef: React.MutableRefObject<HTMLAudioElement | null>
+}> = ({ isPlaying, setIsPlaying, audioRef }) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // When the path changes (navigation to a different page)
+    // or when the location key changes (re-navigating to the same page/Home)
+    // we stop the background music as requested.
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [location.pathname, location.key]);
+
+  return null;
+};
+
+const Layout: React.FC<{
+  children: React.ReactNode;
+  isPlaying: boolean;
+  onToggleMusic: () => void;
+  onStopMusic: () => void;
+  onGoHome: () => void;
+}> = ({ children, isPlaying, onToggleMusic, onStopMusic, onGoHome }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const [activeSection, setActiveSection] = useState('hero');
@@ -103,7 +130,14 @@ const Layout: React.FC<{ children: React.ReactNode; isPlaying: boolean; onToggle
                 {link.path.startsWith('/#') ? (
                   <a
                     href={link.path}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      // If navigating within the page, we might want to keep music?
+                      // But the user said "switching from that page" should stop it.
+                      // If they consider sections as "pages", they might want it to stop.
+                      // However, most users would want it to continue.
+                      // I will only stop it if they navigate to 'Home' specially.
+                    }}
                     className={`text-3xl md:text-5xl font-traditional transition-all hover:tracking-widest ${activeSection === link.id && location.pathname === '/' ? 'text-[#FFD700] scale-110 blur-0' : 'text-white/40 hover:text-white'
                       }`}
                   >
@@ -112,7 +146,12 @@ const Layout: React.FC<{ children: React.ReactNode; isPlaying: boolean; onToggle
                 ) : (
                   <Link
                     to={link.path}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      if (link.id === 'hero') {
+                        onGoHome(); // This will stop music and show welcome screen
+                      }
+                    }}
                     className={`text-3xl md:text-5xl font-traditional transition-all hover:tracking-widest ${location.pathname === link.path ? 'text-[#FFD700] scale-110 blur-0' : 'text-white/40 hover:text-white'
                       }`}
                   >
@@ -211,6 +250,13 @@ const App: React.FC = () => {
     }
   };
 
+  const stopMusic = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
   const toggleMusic = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -222,9 +268,16 @@ const App: React.FC = () => {
     }
   };
 
+  const goHome = () => {
+    stopMusic();
+    setShowWelcome(true);
+    window.scrollTo(0, 0);
+  };
+
   return (
     <Router>
       <ScrollToTop />
+      <NavigationHandler isPlaying={isPlaying} setIsPlaying={setIsPlaying} audioRef={audioRef} />
 
       <AnimatePresence mode="wait">
         {showWelcome && (
@@ -259,7 +312,12 @@ const App: React.FC = () => {
         </div>
       ))}
 
-      <Layout isPlaying={isPlaying} onToggleMusic={toggleMusic}>
+      <Layout
+        isPlaying={isPlaying}
+        onToggleMusic={toggleMusic}
+        onStopMusic={stopMusic}
+        onGoHome={goHome}
+      >
         <Routes>
           <Route path="/" element={<Home />} />
         </Routes>
@@ -267,5 +325,6 @@ const App: React.FC = () => {
     </Router>
   );
 };
+
 
 export default App;
