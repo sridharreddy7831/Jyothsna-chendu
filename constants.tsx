@@ -14,7 +14,7 @@ export const WEDDING_DATE = new Date('2026-03-15T02:00:00');
 export const WEDDING_EVENTS: WeddingEvent[] = [
   {
     id: 'nalangu',
-    name: 'నలుగు (Nalangu)',
+    name: 'నలుగు (Nalugu)',
     date: 'March 13, 2026',
     time: '09:00 AM onwards',
     venue: 'Bride\'s Residence, Manikyarayanipalli',
@@ -52,8 +52,15 @@ export const SLOKAS = [
   "యదేతద్ధృదయం తవ తదస్తు హృదయం మమ। యదిదం హృదయం మమ తదస్తు హృదయం తవ॥"
 ];
 
-export const GALLERY_IMAGES = [
-  { url: '/1.jpg' },
+export const HORIZONTAL_IMAGES = [
+  { url: '/11.jpeg' },
+  { url: '/12.jpeg' },
+  { url: '/13.jpg' },
+];
+
+export const VERTICAL_IMAGES = [
   { url: '/2.jpg' },
   { url: '/5.jpg' },
+  { url: '/00.jpg' },
 ];
+
