@@ -20,28 +20,32 @@ const Layout: React.FC<{ children: React.ReactNode; isPlaying: boolean; onToggle
   const location = useLocation();
   const [activeSection, setActiveSection] = useState('hero');
 
-  // Logic to highlight active section on scroll (only relevant for Home)
+  // Logic to highlight active section on scroll using IntersectionObserver
   useEffect(() => {
     if (location.pathname !== '/') return;
 
-    const handleScroll = () => {
-      const sections = ['hero', 'story', 'ceremonies', 'venue', 'gallery'];
-      const scrollPosition = window.scrollY + 100;
-
-      for (const section of sections) {
-        const el = document.getElementById(section);
-        if (el) {
-          const offsetTop = el.offsetTop;
-          const offsetHeight = el.offsetHeight;
-          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-            setActiveSection(section);
-          }
-        }
-      }
+    const sections = ['hero', 'story', 'ceremonies', 'venue', 'gallery'];
+    const observerOptions = {
+      root: null,
+      rootMargin: '-20% 0px -20% 0px',
+      threshold: 0.1
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    sections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, [location.pathname]);
 
   const navLinks = [
@@ -174,13 +178,25 @@ const Layout: React.FC<{ children: React.ReactNode; isPlaying: boolean; onToggle
 }
 
 const App: React.FC = () => {
-  const [petals, setPetals] = useState<number[]>([]);
+  const [petals, setPetals] = useState<any[]>([]);
   const [showWelcome, setShowWelcome] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setPetals(Array.from({ length: 15 }, (_, i) => i));
+    // Generate stable petal properties
+    const dotColors = ['#FFD700', '#FFF4CC', '#FFDE7A', '#FFFFFF'];
+    const newPetals = Array.from({ length: 15 }, (_, i) => ({
+      id: i,
+      size: 5 + Math.random() * 7,
+      duration: 12 + Math.random() * 16,
+      delay: Math.random() * 20,
+      left: `${Math.random() * 100}%`,
+      rotate: Math.random() * 360,
+      swayDuration: 4 + Math.random() * 4,
+      color: dotColors[i % dotColors.length]
+    }));
+    setPetals(newPetals);
 
     // Initialize audio
     audioRef.current = new Audio('/1.mp3');
@@ -206,8 +222,6 @@ const App: React.FC = () => {
     }
   };
 
-
-
   return (
     <Router>
       <ScrollToTop />
@@ -218,40 +232,32 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Petal Falling Animation */}
-      {petals.map(id => {
-        const size = 5 + Math.random() * 7;
-        const duration = 12 + Math.random() * 16;
-        const delay = Math.random() * 20;
-        const dotColors = ['#FFD700', '#FFF4CC', '#FFDE7A', '#FFFFFF'];
-        const dotColor = dotColors[id % dotColors.length];
-
-        return (
+      {/* Petal Falling Animation - Optimized with stable properties */}
+      {petals.map(petal => (
+        <div
+          key={petal.id}
+          className="petal"
+          style={{
+            left: petal.left,
+            animationDuration: `${petal.duration}s`,
+            animationDelay: `-${petal.delay}s`,
+          }}
+        >
           <div
-            key={id}
-            className="petal"
+            className="petal-inner"
             style={{
-              left: `${Math.random() * 100}%`,
-              animationDuration: `${duration}s`,
-              animationDelay: `-${delay}s`,
+              width: petal.size,
+              height: petal.size,
+              opacity: 0.65,
+              transform: `rotate(${petal.rotate}deg)`,
+              animationDuration: `${petal.swayDuration}s`,
+              borderRadius: '9999px',
+              background: petal.color,
+              boxShadow: '0 0 10px rgba(255, 215, 0, 0.4), 0 0 4px rgba(255, 255, 255, 0.6)'
             }}
-          >
-            <div
-              className="petal-inner"
-              style={{
-                width: size,
-                height: size,
-                opacity: 0.65,
-                transform: `rotate(${Math.random() * 360}deg)`,
-                animationDuration: `${4 + Math.random() * 4}s`,
-                borderRadius: '9999px',
-                background: dotColor,
-                boxShadow: '0 0 10px rgba(255, 215, 0, 0.4), 0 0 4px rgba(255, 255, 255, 0.6)'
-              }}
-            />
-          </div>
-        );
-      })}
+          />
+        </div>
+      ))}
 
       <Layout isPlaying={isPlaying} onToggleMusic={toggleMusic}>
         <Routes>
